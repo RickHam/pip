@@ -22,6 +22,9 @@ class T(TipoviTokena):
     class IME(Token):
         pass
 
+    class TEKST(Token):
+        pass
+
 
 def je_akord(s):
 
@@ -49,6 +52,11 @@ def ac(lex):
         elif znak.isdecimal():
             lex.prirodni_broj(znak)
             yield lex.token(T.BROJ)
+        elif znak == '"':
+            lex.pročitaj_do('"', uključivo=False)
+            yield lex.token(T.TEKST)
+            lex.čitaj()   # pojedi završni "
+            lex.zanemari()
         elif znak.isalpha() or znak in '#_':
             lex * je_znak
 
@@ -71,31 +79,83 @@ def ac(lex):
 
 
 
+### BKG
+# start -> '' | start naredba
+# naredba -> transponiraj | analiziraj | validacija | generate_pop | ispis
+# analiziraj -> ANALYSE OTV lista_akorda ZATV
+# transponiraj -> TRANSPOSE OTV lista_akorda ZAREZ pomak ZATV
+# validacija -> VALIDATE OTV lista_akorda ZATV
+# generate_pop -> GENERATE_POP OTV BROJ ZATV
+# ispis -> ISPIS OTV pjesma ZATV
+# lista_akorda -> UOTV elementi ZATV
+# elementi ->AKORD ZAREZ elementi| AKORD
+# pomak -> BROJ | PLUS BROJ| MINUS BROJ
+# pjesma -> TEKST
 
-if __name__ == "__main__":
+class Program(AST):
+    naredbe: list
 
-    testovi = [
-        "C Am F G",
-        "transpose C + 2",
-        "analyse [C, G, Am, F]",
-        "validate C = G",
-        "generate_pop C Am F G",
-        "C#m Bb Am G#",
-        "ispis C + Am",
-        "C invalid_token 123 Am",
-    ]
-    i = 0
-    for ulaz in testovi:
-        print("test broj:  ", i)
-        print("\n" + "="*40)
-        print("ULAZ:", ulaz)
-        print("-"*40)
+class Transpose(AST):
+    akordi: list
+    pomak: int
 
-        try:
-            tokens = list(ac(ulaz))
 
-            for t in tokens:
-                print(f"{t.__class__.__name__:<10} | {t.sadržaj}")
+class Analyse(AST):
+    akordi: list
 
-        except Exception as e:
-            print("GREŠKA:", e)
+
+class Validate(AST):
+    akordi: list
+
+
+class GeneratePop(AST):
+    broj: Token
+
+
+class Ispis(AST):
+    pjesma: Token
+
+
+class ListaAkorda(AST):
+    akordi: list
+
+
+class Pomak(AST):
+    predznak: Token
+    broj: Token
+
+class P(Parser):
+    def start(p):
+        ...
+
+    def naredba(p):
+        ...
+
+    def analiziraj(p):
+        ...
+
+    def transponiraj(p):
+        ...
+
+    def validacija(p):
+        ...
+
+    def generate_pop(p):
+        ...
+
+    def ispis(p):
+        ...
+
+    def lista_akorda(p):
+        ...
+
+    def elementi(p):
+        ...
+
+    def pomak(p):
+        ...
+
+    def pjesma(p):
+        ...
+
+
