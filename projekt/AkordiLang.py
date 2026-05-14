@@ -32,6 +32,7 @@ def je_akord(s):
 def je_znak(z):
     #Prihvačamo samo 'klasične' akorde.  kasnijim edicijama lako dodamo napredne poput maj7, sus4...
     #Za amatere poput mene ovo je sasvim dovoljno
+    if not z: return False
     return z.isalnum() or z in "#_b"
 
 keywords = {'transpose',
