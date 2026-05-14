@@ -52,8 +52,8 @@ def ac(lex):
         elif znak.isdecimal():
             lex.prirodni_broj(znak)
             yield lex.token(T.BROJ)
-        elif znak == '"':
-            lex.pročitaj_do('"', uključivo=False)
+        elif znak == '!':
+            lex.pročitaj_do('!', uključivo=False)
             yield lex.token(T.TEKST)
             lex.čitaj()   # pojedi završni "
             lex.zanemari()
@@ -124,38 +124,141 @@ class Pomak(AST):
     predznak: Token
     broj: Token
 
+
 class P(Parser):
     def start(p):
-        ...
+        naredbe = []
+
+        while not p > KRAJ:
+            naredbe.append(p.naredba())
+
+        return Program(naredbe)
 
     def naredba(p):
-        ...
+        if p > T.TRANSPOSE:
+            return p.transponiraj()
+
+        elif p > T.ANALYSE:
+            return p.analiziraj()
+
+        elif p > T.VALIDATE:
+            return p.validacija()
+
+        elif p > T.GENERATE_POP:
+            return p.generate_pop()
+
+        elif p >> T.ISPIS:
+            return p.ispis()
+
 
     def analiziraj(p):
-        ...
+        p >> T.ANALYSE
+        p >> T.OTV
+
+        akordi = p.lista_akorda()
+
+        p >> T.ZATV
+
+        return Analyse(akordi)
 
     def transponiraj(p):
-        ...
+        p >> T.TRANSPOSE
+        p >> T.OTV
+        
+        akordi = p.lista_akorda()
+
+        p >> T.ZAREZ
+
+        pomak = p.pomak()
+
+        p >> T.ZATV
+
+        return Transpose(akordi, pomak)
 
     def validacija(p):
-        ...
+        p >> T.VALIDATE
+        p >> T.OTV
+
+        akordi = p.lista_akorda()
+
+        p >> T.ZATV
+
+        return Validate(akordi)
 
     def generate_pop(p):
-        ...
+        p >> T.GENERATE_POP
+        p >> T.OTV
+        broj = p >> T.BROJ
+
+        p>>T.ZATV
+
+        return GeneratePop(broj)
 
     def ispis(p):
-        ...
+        p >> T.ISPIS
+        p >> T.OTV
+
+        tekst = p.pjesma()
+
+        p >> T.ZATV
+
+        return Ispis(tekst)
 
     def lista_akorda(p):
-        ...
+        p >> T.UOTV
 
-    def elementi(p):
-        ...
+        akordi = [p >> T.AKORD]
+
+        while p>= T.ZAREZ:
+            akordi.append(p >> T.AKORD)
+
+        p >> T.UZATV
+
+        return ListaAkorda(akordi)
+
 
     def pomak(p):
-        ...
+        predznak = 1
+        if p > T.MINUS:
+            p.čitaj()
+            predznak = -1
+        
+        if p > T.PLUS:
+            p.čitaj()
 
-    def pjesma(p):
-        ...
+        broj = p >> T.BROJ
+
+        return Pomak(predznak, broj)
+    
+
+
+
+    ## DEBUG TIME:
+def testiranje(tekst):
+    ast = P(tekst)
+    prikaz(ast, detalj=2)
+
+if __name__ == "__main__":
+
+    testovi = [
+        "analyse ([C, G, Am, F])",
+        "transpose ([C, G, Am, F], +2)",
+        "transpose ([C, G, Am, F], 2)",
+        "generate_pop(8)",
+        "ispis !C Am F G!",
+        "C Am F G"
+    ]
+
+    for i, ulaz in enumerate(testovi):
+        print("\n" + "=" * 50)
+        print(f"TEST {i}: {ulaz}")
+        print("-" * 50)
+
+        try:
+            testiranje(ulaz)
+        except Exception as e:
+            print("GREŠKA:", e)
+
+        
 
 
