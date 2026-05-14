@@ -33,10 +33,10 @@ def je_akord(s):
     return re.match(pattern, s) is not None
 
 def je_znak(z):
-    #Prihvačamo samo 'klasične' akorde.  kasnijim edicijama lako dodamo napredne poput maj7, sus4...
+    #Prihvačamo samo 'klasične' akorde.  kasnijim edicijama lako dodamo 'napredne' poput maj7, sus4...
     #Za amatere poput mene ovo je sasvim dovoljno
     if not z: return False
-    return z.isalnum() or z in "#_b"
+    return z.isalnum() or z in '#_'
 
 keywords = {'transpose',
             'analyse',
@@ -57,7 +57,7 @@ def ac(lex):
             yield lex.token(T.TEKST)
             lex.čitaj()   # pojedi završni "
             lex.zanemari()
-        elif znak.isalpha() or znak in '#_':
+        elif znak.isalpha():
             lex * je_znak
 
             sadržaj = lex.sadržaj
