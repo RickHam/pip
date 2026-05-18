@@ -53,23 +53,18 @@ def ac(lex):
             lex.prirodni_broj(znak)
             yield lex.token(T.BROJ)
         elif znak == '!':
-            lex.pročitaj_do('!', uključivo=False)
+            lex - "!"
             yield lex.token(T.TEKST)
-            lex.čitaj()   # pojedi završni "
-            lex.zanemari()
         elif znak.isalpha():
             lex * je_znak
 
             sadržaj = lex.sadržaj
 
-            if sadržaj in keywords:
-                yield lex.literal(T)
-
-            elif je_akord(sadržaj):
+            if je_akord(sadržaj):
                 yield lex.token(T.AKORD)
 
             else:
-                yield lex.token(T.IME)
+                yield lex.literal_ili(T.IME)
 
             lex.zanemari()
 
@@ -91,38 +86,6 @@ def ac(lex):
 # elementi ->AKORD ZAREZ elementi| AKORD
 # pomak -> BROJ | PLUS BROJ| MINUS BROJ
 # pjesma -> TEKST
-
-class Program(AST):
-    naredbe: list
-
-class Transpose(AST):
-    akordi: list
-    pomak: int
-
-
-class Analyse(AST):
-    akordi: list
-
-
-class Validate(AST):
-    akordi: list
-
-
-class GeneratePop(AST):
-    broj: Token
-
-
-class Ispis(AST):
-    pjesma: Token
-
-
-class ListaAkorda(AST):
-    akordi: list
-
-
-class Pomak(AST):
-    predznak: Token
-    broj: Token
 
 
 class P(Parser):
@@ -147,8 +110,11 @@ class P(Parser):
         elif p > T.GENERATE_POP:
             return p.generate_pop()
 
-        elif p >> T.ISPIS:
+        elif p > T.ISPIS:
             return p.ispis()
+
+        else:
+            raise p.greška()
 
 
     def analiziraj(p):
@@ -198,7 +164,7 @@ class P(Parser):
         p >> T.ISPIS
         p >> T.OTV
 
-        tekst = p.pjesma()
+        tekst = p>>T.TEKST
 
         p >> T.ZATV
 
@@ -232,11 +198,42 @@ class P(Parser):
     
 
 
+class Program(AST):
+    naredbe: list
+
+class Transpose(AST):
+    akordi: list
+    pomak: int
+
+
+class Analyse(AST):
+    akordi: list
+
+
+class Validate(AST):
+    akordi: list
+
+
+class GeneratePop(AST):
+    broj: Token
+
+
+class Ispis(AST):
+    tekst: Token
+
+
+class ListaAkorda(AST):
+    akordi: list
+
+
+class Pomak(AST):
+    predznak: Token
+    broj: Token
+
 
     ## DEBUG TIME:
 def testiranje(tekst):
-    ast = P(tekst)
-    prikaz(ast, detalj=2)
+    prikaz(P(tekst))
 
 if __name__ == "__main__":
 
@@ -245,7 +242,7 @@ if __name__ == "__main__":
         "transpose ([C, G, Am, F], +2)",
         "transpose ([C, G, Am, F], 2)",
         "generate_pop(8)",
-        "ispis !C Am F G!",
+        "ispis(!C Am F G!)",
         "C Am F G"
     ]
 
@@ -259,6 +256,6 @@ if __name__ == "__main__":
         except Exception as e:
             print("GREŠKA:", e)
 
-        
+            
 
 
