@@ -38,12 +38,6 @@ def je_znak(z):
     if not z: return False
     return z.isalnum() or z in '#_'
 
-keywords = {'transpose',
-            'analyse',
-            'validate',
-            'generate_pop',
-            'ispis'
-            }
 
 @lexer
 def ac(lex):
