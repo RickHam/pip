@@ -193,11 +193,37 @@ class P(Parser):
 
 
 class Program(AST):
-    naredbe: list
+    naredbe: 'naredba*'
+    def izvrši(program):
+        rt.memorija = Memorija()
+        for naredba in program.naredbe: naredba.izvrši()
 
 class Transpose(AST):
-    akordi: list
-    pomak: int
+    akordi: 'lista_akorda'
+    pomak: 'int'
+
+    def izvrši(unos):
+        tr = unos.akordi
+        for i in range(len(tr)):
+            element = tr[i]
+            odmak = 2* (ord(element[0]) - ord('A'))
+            polozaj = odmak + unos.pomak
+
+            if(polozaj%2 == 1):
+                if('m' in element[1:]):
+                    polozaj += 1
+                    element = element.replace('m','')
+                else:
+                    element += 'm'
+                
+            element[0] = chr(ord('A') + polozaj%14)
+            tr[i] = element
+
+                
+
+            
+
+
 
 
 class Analyse(AST):
@@ -226,7 +252,7 @@ class Pomak(AST):
 
 
     ## DEBUG TIME:
-def testiranje(tekst):
+def testiraj(tekst):
     prikaz(P(tekst))
 
 if __name__ == "__main__":
