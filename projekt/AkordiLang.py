@@ -1,6 +1,10 @@
 from vepar import *
 import re
 
+
+NOTE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+
 class T(TipoviTokena):
     OTV, ZATV, UOTV, UZATV = '()[]'
     ZAREZ = ','
@@ -13,7 +17,7 @@ class T(TipoviTokena):
     ISPIS = 'ispis'
 
     class BROJ(Token):
-        def vrijednost(self, mem, unutar): return int(self.sadržaj)
+        def vrijednost(self): return int(self.sadržaj)
 
         
     class AKORD(Token):
@@ -203,11 +207,12 @@ class Transpose(AST):
     pomak: 'int'
 
     def izvrši(unos):
-        tr = unos.akordi
+        tr = unos.akordi.akordi
+        pravi_pomak = (unos.pomak.predznak * unos.pomak.broj.vrijednost())
         for i in range(len(tr)):
-            element = tr[i]
+            element = tr[i].sadržaj
             odmak = 2* (ord(element[0]) - ord('A'))
-            polozaj = odmak + unos.pomak
+            polozaj = odmak + pravi_pomak
 
             if(polozaj%2 == 1):
                 if('m' in element[1:]):
@@ -216,15 +221,12 @@ class Transpose(AST):
                 else:
                     element += 'm'
                 
-            element[0] = chr(ord('A') + polozaj%14)
-            tr[i] = element
+            novi = chr(ord('A') + polozaj%14)
+            tr[i] = novi
+        
+        print(tr)
 
                 
-
-            
-
-
-
 
 class Analyse(AST):
     akordi: list
@@ -272,7 +274,7 @@ if __name__ == "__main__":
         print("-" * 50)
 
         try:
-            testiranje(ulaz)
+            testiraj(ulaz)
         except Exception as e:
             print("GREŠKA:", e)
 
