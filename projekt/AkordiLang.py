@@ -1,9 +1,16 @@
 from vepar import *
 import re
 
-
+#Klasična definica ljestvica nota i progresija. Problematični su E->F, i B->C bez E#, B# 
+#Pa sa standardnom logikom prebacivanja bi se pošteno namučili
 NOTE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
+PROGRESSIONS = [
+        ["C", "G", "Am", "F"],
+        ["C", "Am", "F", "G"],
+        ["Am", "F", "C", "G"],
+        ["C", "G", "F", "F"],
+    ]
 
 class T(TipoviTokena):
     OTV, ZATV, UOTV, UZATV = '()[]'
@@ -37,7 +44,7 @@ def je_akord(s):
     return re.match(pattern, s) is not None
 
 def je_znak(z):
-    #Prihvačamo samo 'klasične' akorde.  kasnijim edicijama lako dodamo 'napredne' poput maj7, sus4...
+    #Prihvačamo samo 'klasične' akorde.  kasnijim edicijama možemo dodati 'napredne' poput maj7, sus4...
     #Za amatere poput mene ovo je sasvim dovoljno
     if not z: return False
     return z.isalnum() or z in '#_'
@@ -59,6 +66,11 @@ def ac(lex):
             sadržaj = lex.sadržaj
 
             if je_akord(sadržaj):
+                #Mjenjamo H u B po standardu
+                if sadržaj.startswith('H'):
+                    sadržaj = 'B' + sadržaj[1:]
+                    lex.sadržaj = sadržaj
+                    print("Promjenjen H akordu u B po Njemačkom standardu\n")
                 yield lex.token(T.AKORD)
 
             else:
@@ -76,8 +88,9 @@ def ac(lex):
 # start -> '' | start naredba
 # naredba -> transponiraj | analiziraj | validacija | generate_pop | ispis
 # analiziraj -> ANALYSE OTV lista_akorda ZATV
-# transponiraj -> TRANSPOSE OTV lista_akorda ZAREZ pomak ZATV
+# transponiraj -> TRANSPOSE OTV izraz ZAREZ pomak ZATV
 # validacija -> VALIDATE OTV lista_akorda ZATV
+# izraz -> lista_akorda | generate_pop | transpose | akord
 # generate_pop -> GENERATE_POP OTV BROJ ZATV
 # ispis -> ISPIS OTV pjesma ZATV
 # lista_akorda -> UOTV elementi ZATV
@@ -129,7 +142,7 @@ class P(Parser):
         p >> T.TRANSPOSE
         p >> T.OTV
         
-        akordi = p.lista_akorda()
+        akordi = p.izraz()
 
         p >> T.ZAREZ
 
@@ -138,6 +151,19 @@ class P(Parser):
         p >> T.ZATV
 
         return Transpose(akordi, pomak)
+    
+    def izraz(p):
+        if p > T.GENERATE_POP:
+            return p.generate_pop()
+
+        elif p > T.TRANSPOSE:
+            return p.transponiraj()
+
+        elif p > T.AKORD:
+            return ListaAkorda([p >> T.AKORD])
+        
+        else:
+            raise p.greška()
 
     def validacija(p):
         p >> T.VALIDATE
@@ -193,26 +219,34 @@ class P(Parser):
         broj = p >> T.BROJ
 
         return Pomak(predznak, broj)
-    
+
+
+#AST TIME! 
 
 
 class Program(AST):
     naredbe: 'naredba*'
     def izvrši(program):
         rt.memorija = Memorija()
-        for naredba in program.naredbe: naredba.izvrši()
+
+        rezultat = None
+        for naredba in program.naredbe: 
+            rezultat = naredba.izvrši()
+
+        return rezultat
 
 class Transpose(AST):
-    akordi: 'lista_akorda'
+    izraz: 'AST'
     pomak: 'int'
 
     def izvrši(self):
+        lista = self.izraz.izvrši()
 
         pravi_pomak = self.pomak.predznak * self.pomak.broj.vrijednost()
 
         rezultat = []
 
-        for akord in self.akordi.akordi:
+        for akord in lista.akordi:
             s = akord.sadržaj
             minor = s.endswith('m')
 
@@ -231,24 +265,7 @@ class Transpose(AST):
 
             rezultat.append(novi_akord)
 
-        print(rezultat)
-        return rezultat
-        # tr = unos.akordi.akordi
-        # pravi_pomak = (unos.pomak.predznak * unos.pomak.broj.vrijednost())
-        # for i in range(len(tr)):
-        #     element = tr[i].sadržaj
-        # minor = element.endswith('m')
-
-        # idx = NOTE.index(korijen)
-        # novi_idx = (idx + pravi_pomak) % 12
-
-        # novi = NOTE[novi_idx]
-
-        # if minor:
-        #     novi += 'm'
-        
-        # print(tr)
-
+        return ListaAkorda([Token(T.AKORD,x) for x in rezultat])   
                 
 
 class Analyse(AST):
@@ -261,6 +278,12 @@ class Validate(AST):
 
 class GeneratePop(AST):
     broj: Token
+
+    def izvrši(self):
+        n = self.broj.vrijednost()
+        pattern = PROGRESSIONS[n % len(PROGRESSIONS)]
+
+        return ListaAkorda([Token(T.AKORD,x) for x in pattern])
 
 
 class Ispis(AST):
@@ -277,6 +300,7 @@ class Pomak(AST):
 
 
     ## DEBUG TIME:
+
 def testiraj(tekst):
     prikaz(P(tekst))
 
