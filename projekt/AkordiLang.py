@@ -4,6 +4,7 @@ import re
 #Klasična definica ljestvica nota i progresija. Problematični su E->F, i B->C bez E#, B# 
 #Pa sa standardnom logikom prebacivanja bi se pošteno namučili
 NOTE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+ROMAN = ['I', 'bII', 'II', 'bIII', 'III', 'IV', 'bV', 'V', 'bVI', 'VI', 'bVII', 'VII']
 
 PROGRESSIONS = [
         ["C", "G", "Am", "F"],
@@ -89,9 +90,9 @@ def ac(lex):
 # naredba -> transponiraj | analiziraj | validacija | generate_pop | ispis
 # analiziraj -> ANALYSE OTV lista_akorda ZATV
 # transponiraj -> TRANSPOSE OTV izraz ZAREZ pomak ZATV
-# validacija -> VALIDATE OTV lista_akorda ZATV
-# izraz -> lista_akorda | generate_pop | transpose | akord
+# validacija -> VALIDATE OTV izraz ZATV
 # generate_pop -> GENERATE_POP OTV BROJ ZATV
+# izraz -> lista_akorda | generate_pop | transpose | akord
 # ispis -> ISPIS OTV pjesma ZATV
 # lista_akorda -> UOTV elementi ZATV
 # elementi ->AKORD ZAREZ elementi| AKORD
@@ -132,11 +133,11 @@ class P(Parser):
         p >> T.ANALYSE
         p >> T.OTV
 
-        akordi = p.lista_akorda()
+        izraz = p.izraz()
 
         p >> T.ZATV
 
-        return Analyse(akordi)
+        return Analyse(izraz)
 
     def transponiraj(p):
         p >> T.TRANSPOSE
@@ -153,6 +154,9 @@ class P(Parser):
         return Transpose(akordi, pomak)
     
     def izraz(p):
+        if p > T.UOTV:
+            return p.lista_akorda()
+        
         if p > T.GENERATE_POP:
             return p.generate_pop()
 
@@ -169,7 +173,7 @@ class P(Parser):
         p >> T.VALIDATE
         p >> T.OTV
 
-        akordi = p.lista_akorda()
+        akordi = p.izraz()
 
         p >> T.ZATV
 
@@ -269,7 +273,24 @@ class Transpose(AST):
                 
 
 class Analyse(AST):
-    akordi: list
+    izraz: 'izraz'
+
+    def izvrši(self):
+        akordi = self.izraz.izvrši()
+
+        result = []
+        for akord in akordi:
+            s= akord.sadržaj
+
+            minor = s.endswith('m')
+            root = s[:-1] if minor else s
+
+            idx = NOTE.index(root)
+            result.append(ROMAN[idx].lower() if minor else ROMAN[idx])
+        
+        print(result)
+        return result
+        
 
 
 class Validate(AST):
@@ -292,6 +313,9 @@ class Ispis(AST):
 
 class ListaAkorda(AST):
     akordi: list
+
+    def izvrši(self):
+        return self.akordi
 
 
 class Pomak(AST):
