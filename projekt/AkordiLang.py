@@ -206,25 +206,48 @@ class Transpose(AST):
     akordi: 'lista_akorda'
     pomak: 'int'
 
-    def izvrši(unos):
-        tr = unos.akordi.akordi
-        pravi_pomak = (unos.pomak.predznak * unos.pomak.broj.vrijednost())
-        for i in range(len(tr)):
-            element = tr[i].sadržaj
-            odmak = 2* (ord(element[0]) - ord('A'))
-            polozaj = odmak + pravi_pomak
+    def izvrši(self):
 
-            if(polozaj%2 == 1):
-                if('m' in element[1:]):
-                    polozaj += 1
-                    element = element.replace('m','')
-                else:
-                    element += 'm'
-                
-            novi = chr(ord('A') + polozaj%14)
-            tr[i] = novi
+        pravi_pomak = self.pomak.predznak * self.pomak.broj.vrijednost()
+
+        rezultat = []
+
+        for akord in self.akordi.akordi:
+            s = akord.sadržaj
+            minor = s.endswith('m')
+
+            if(minor):
+                korijen = s[:-1]
+            else:
+                korijen = s
+            
+            idx = NOTE.index(korijen)
+            novi_idx = (idx + pravi_pomak) % len(NOTE)
+
+            novi_akord = NOTE[novi_idx]
+
+            if minor:
+                novi_akord += 'm'
+
+            rezultat.append(novi_akord)
+
+        print(rezultat)
+        return rezultat
+        # tr = unos.akordi.akordi
+        # pravi_pomak = (unos.pomak.predznak * unos.pomak.broj.vrijednost())
+        # for i in range(len(tr)):
+        #     element = tr[i].sadržaj
+        # minor = element.endswith('m')
+
+        # idx = NOTE.index(korijen)
+        # novi_idx = (idx + pravi_pomak) % 12
+
+        # novi = NOTE[novi_idx]
+
+        # if minor:
+        #     novi += 'm'
         
-        print(tr)
+        # print(tr)
 
                 
 
