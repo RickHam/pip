@@ -1,17 +1,39 @@
 from vepar import *
 import re
 
-#Klasična definica ljestvica nota i progresija. Problematični su E->F, i B->C bez E#, B# 
+
+# Patrik želi naučiti svirati gitaru. 
+# Zna osnovne akorde, ali ne zna muzičku teoriju ni koje pjesme imaju koje akorde.
+# Kao kolega koji voli tipkati po računalu želi neki programski jezik
+# koji će mu pomoći da na tekstove pjesama upiše akorde za gitaru.
+# Također kako je on amater, neki akordi su mu teški za uhvatiti
+# pa ponekad želi transponirati akorde za lakše hvatove.
+# Kroz vježbu on shvača da u pjesmama podosta uzoraka akorda se ponavlja
+# želi moći analizirati koje pjesme sadržavaju taj uzorak.
+# Kako u slobodno vrijeme želi napisati pokoju pjesmu i odsvirati na gitari
+# želi mogučnost generiranja progresija koje zvuče "dobro"
+# te uopće provjeriti je li neka dana progresija zvuči "dobro" 
+
+# Ovaj programski jezik je napravljen da pomogne korisnicima poput Patrika.
+# Dolazi s funkcijama transpose, analyse, validate, generate_pop koji
+# upravo zadovoljavaju njegove potrebe. 
+
+
+
+#Klasična definica ljestvica nota i progresija. 
+#Problematični su E->F, i B->C jer ne postoje E#, B# 
 #Pa sa standardnom logikom prebacivanja bi se pošteno namučili
 NOTE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 ROMAN = ['I', 'bII', 'II', 'bIII', 'III', 'IV', 'bV', 'V', 'bVI', 'VI', 'bVII', 'VII']
 
+
+#Ovo poslije prebaciti u bazu podataka.
 PROGRESSIONS = [
         ["C", "G", "Am", "F"],
         ["C", "Am", "F", "G"],
         ["Am", "F", "C", "G"],
         ["C", "G", "F", "F"],
-    ]
+    ] #
 
 class T(TipoviTokena):
     OTV, ZATV, UOTV, UZATV = '()[]'
@@ -250,7 +272,7 @@ class Transpose(AST):
 
         rezultat = []
 
-        for akord in lista.akordi:
+        for akord in lista:
             s = akord.sadržaj
             minor = s.endswith('m')
 
@@ -268,7 +290,7 @@ class Transpose(AST):
                 novi_akord += 'm'
 
             rezultat.append(novi_akord)
-
+        print("rezultat Transposea: ", rezultat)
         return ListaAkorda([Token(T.AKORD,x) for x in rezultat])   
                 
 
@@ -319,11 +341,14 @@ class ListaAkorda(AST):
 
 
 class Pomak(AST):
-    predznak: Token
-    broj: Token
+    predznak: ...
+    broj: ...
 
 
     ## DEBUG TIME:
+
+def iz(tekst):
+    P(tekst).izvrši()
 
 def testiraj(tekst):
     prikaz(P(tekst))
