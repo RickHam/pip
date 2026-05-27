@@ -252,30 +252,44 @@ class P(Parser):
 
 #Pomočne funkcije za AST
 def odredi_skalu(korijen):
-
-    idx = NOTE.index(korijen)
+    novi_korijen = korijen
+    ima_m = ''
+    intervali = []
+    if korijen.endswith('m'):
+        novi_korijen = korijen[:-1]
+        intervali = [2, 1, 2, 2, 1, 2, 2] #mol skala
+    else:
+        intervali = [2, 2, 1, 2, 2, 2, 1] #dur skala
+    idx = NOTE.index(novi_korijen)
     
-    intervali = [2, 2, 1, 2, 2, 2, 1]
 
-    skala = [korijen]
+    skala = [novi_korijen]
 
     for korak in intervali:
         idx = (idx + korak) % 12
-        skala.append(NOTE[idx])
+        skala.append(NOTE[idx] + ima_m)
 
     return skala[:-1]
 
 
-def harmonija(scale):
-
+def harmonija(nota):
+    scale = odredi_skalu(nota)
+    mol = nota.endswith('m')
     result = []
-
+    
     for i, note in enumerate(scale[:7]):
+        if mol == False:
+            if i in [1,2,5]:
+                result.append(note + 'm')
+            else:
+                result.append(note)
 
-        if i in [1,2,5]:
-            result.append(note + 'm')
         else:
-            result.append(note)
+            if i in [0, 3, 4]:
+                result.append(note)
+            else:
+                result.append(note + 'm')
+
 
     return result
 #AST TIME! 
@@ -350,10 +364,16 @@ class Validate(AST):
     izraz: 'izraz'
 
     def izvrši(self):
-        akordi = self.izraz.izvši()
+        akordi = self.izraz.izvrši()
+        root = akordi[0].sadržaj
 
-        return 2
-
+        progresija = harmonija(root)
+        for akord in akordi:
+            if akord.sadržaj not in progresija:
+                print("Invalidna progresija")
+                return False
+        print("Validna progresija")
+        return True
 
 
 class GeneratePop(AST):
@@ -401,7 +421,6 @@ if __name__ == "__main__":
         "transpose ([C, G, Am, F], 2)",
         "generate_pop(8)",
         "ispis(!C Am F G!)",
-        "C Am F G"
     ]
 
     for i, ulaz in enumerate(testovi):
