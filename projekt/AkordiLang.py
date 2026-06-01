@@ -1,5 +1,6 @@
 from vepar import *
 import re
+import json
 
 
 # Patrik želi naučiti svirati gitaru. 
@@ -20,23 +21,59 @@ import re
 
 
 
-
-
-
 #Klasična definica ljestvica nota i progresija. 
 #Problematični su E->F, i B->C jer ne postoje E#, B# 
 #Pa sa standardnom logikom prebacivanja bi se pošteno namučili
 NOTE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 ROMAN = ['I', 'bII', 'II', 'bIII', 'III', 'IV', 'bV', 'V', 'bVI', 'VI', 'bVII', 'VII']
 
+PROGRESSIONS = [[]] 
 
-#Ovo poslije prebaciti u bazu podataka.
-PROGRESSIONS = [
-        ["C", "G", "Am", "F"],
-        ["C", "Am", "F", "G"],
-        ["Am", "F", "C", "G"],
-        ["C", "G", "F", "F"],
-    ] #
+def load_progressions(filename="progressions.json"):
+    with open(filename, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    return data["progressions"]
+
+    
+
+def save_progressions(progressions, filename="progressions.json"):
+    data = {
+        "progressions": progressions
+    }
+
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+    
+    updateProgressions()
+
+def add_progression(progression, filename="progressions.json"):
+    progressions = load_progressions(filename)
+
+    progressions.append(progression)
+
+    save_progressions(progressions, filename)
+
+    updateProgressions()
+
+def remove_progression(index, filename="progressions.json"):
+    progressions = load_progressions(filename)
+
+    if 0 <= index < len(progressions):
+        del progressions[index]
+        save_progressions(progressions, filename)
+    updateProgressions()
+
+        
+
+def updateProgressions():
+    global PROGRESSIONS
+    PROGRESSIONS = load_progressions(filename="progressions.json")
+
+PROGRESSIONS = load_progressions(filename="progressions.json") 
+
+
+
 
 class T(TipoviTokena):
     OTV, ZATV, UOTV, UZATV = '()[]'
@@ -84,7 +121,7 @@ def ac(lex):
             lex.prirodni_broj(znak)
             yield lex.token(T.BROJ)
         elif znak == '!':
-            lex - "!"
+            lex.pročitaj_do("!", više_redova = True)
             yield lex.token(T.TEKST)
         elif znak.isalpha():
             lex * je_znak
@@ -111,7 +148,8 @@ def ac(lex):
 
 ### BKG
 # start -> '' | start naredba
-# naredba -> transponiraj | analiziraj | validacija | generate_pop | ispis
+# naredba -> pridruživanje | transponiraj | analiziraj | validacija | generate_pop | ispis
+# pridruživanje -> IME JEDNAKO izraz
 # analiziraj -> ANALYSE OTV lista_akorda ZATV
 # transponiraj -> TRANSPOSE OTV izraz ZAREZ pomak ZATV
 # validacija -> VALIDATE OTV izraz ZATV
@@ -134,6 +172,8 @@ class P(Parser):
         return Program(naredbe)
 
     def naredba(p):
+        if p > T.IME:
+            return p.pridruživanje()
         if p > T.TRANSPOSE:
             return p.transponiraj()
 
@@ -152,6 +192,14 @@ class P(Parser):
         else:
             raise p.greška()
 
+    def pridruzivanje(p):
+        ime = p >> T.IME
+
+        p >> T.JEDNAKO
+
+        izraz = p.izraz()
+
+        return Pridruživanje(ime, izraz)
 
     def analiziraj(p):
         p >> T.ANALYSE
@@ -189,6 +237,9 @@ class P(Parser):
 
         elif p > T.AKORD:
             return ListaAkorda([p >> T.AKORD])
+        
+        elif p> T.IME:
+            return Dohvati(p>>T.IME)
         
         else:
             raise p.greška()
@@ -292,9 +343,25 @@ def harmonija(nota):
 
 
     return result
+
+
+def izvuci_akorde(tekst):
+    pattern = r'\[([A-H](?:#|b)?m?)\]' 
+    return re.findall(pattern, tekst)
+
+
+
+
 #AST TIME! 
 
+class Dohvati(AST):
+    ime: ...
 
+    def izvrši(self):
+
+        return rt.memorija[self.ime.sadržaj]
+    
+    
 class Program(AST):
     naredbe: 'naredba*'
     def izvrši(program):
@@ -338,9 +405,22 @@ class Transpose(AST):
         print("rezultat Transposea: ", rezultat)
         return [Token(T.AKORD,x) for x in rezultat]   
                 
+class Pridruzivanje(AST):
+    ime: ...
+    izraz: ...
 
+    def izvrši(self):
+
+        vrijednost = self.izraz.izvrši()
+
+        rt.memorija[self.ime.sadržaj] = vrijednost
+
+        print(f"Spremljeno u varijablu '{self.ime.sadržaj}'")
+
+        return vrijednost
+    
 class Analyse(AST):
-    izraz: 'izraz'
+    izraz: ...
 
     def izvrši(self):
         akordi = self.izraz.izvrši()
@@ -361,7 +441,7 @@ class Analyse(AST):
 
 
 class Validate(AST):
-    izraz: 'izraz'
+    izraz: ...
 
     def izvrši(self):
         akordi = self.izraz.izvrši()
@@ -377,18 +457,55 @@ class Validate(AST):
 
 
 class GeneratePop(AST):
-    broj: Token
+    broj: ...
 
     def izvrši(self):
         n = self.broj.vrijednost()
         pattern = PROGRESSIONS[n % len(PROGRESSIONS)]
-
-        return [Token(T.AKORD,x) for x in pattern]
+        print("Generirana progresija: ", pattern)
+        result = [Token(T.AKORD,x) for x in pattern]
+        return result
 
 
 class Ispis(AST):
-    tekst: Token
+    tekst: ...
 
+    def izvrši(self):
+
+        tekst = self.tekst.sadržaj
+
+        linije = tekst.split('\n')
+
+        for linija in linije:
+
+            akordi_red = ''
+            tekst_red = ''
+
+            i = 0
+
+            while i < len(linija):
+
+                if linija[i] == '[':
+
+                    kraj = linija.index(']', i)
+
+                    akord = linija[i+1:kraj]
+
+                    akordi_red += akord
+
+                    # poravnanje
+                    tekst_red += ' ' * len(akord)
+
+                    i = kraj + 1
+
+                else:
+                    akordi_red += ' '
+                    tekst_red += linija[i]
+                    i += 1
+
+            print(akordi_red)
+            print(tekst_red)
+            print()
 
 class ListaAkorda(AST):
     akordi: list
@@ -421,6 +538,9 @@ if __name__ == "__main__":
         "transpose ([C, G, Am, F], 2)",
         "generate_pop(8)",
         "ispis(!C Am F G!)",
+        "verse = [C,G,Am,F]",
+        "chorus = transpose(verse, 2)"
+        "analyse(chorus)"
     ]
 
     for i, ulaz in enumerate(testovi):
@@ -430,6 +550,7 @@ if __name__ == "__main__":
 
         try:
             testiraj(ulaz)
+            iz(ulaz)
         except Exception as e:
             print("GREŠKA:", e)
 
