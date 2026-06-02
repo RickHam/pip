@@ -1,6 +1,6 @@
 from vepar import *
 import re
-import json
+import json, os
 
 
 # Patrik želi naučiti svirati gitaru. 
@@ -26,54 +26,6 @@ import json
 #Pa sa standardnom logikom prebacivanja bi se pošteno namučili
 NOTE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 ROMAN = ['I', 'bII', 'II', 'bIII', 'III', 'IV', 'bV', 'V', 'bVI', 'VI', 'bVII', 'VII']
-
-PROGRESSIONS = [[]] 
-
-def load_progressions(filename="progressions.json"):
-    with open(filename, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    return data["progressions"]
-
-    
-
-def save_progressions(progressions, filename="progressions.json"):
-    data = {
-        "progressions": progressions
-    }
-
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
-    
-    updateProgressions()
-
-def add_progression(progression, filename="progressions.json"):
-    progressions = load_progressions(filename)
-
-    progressions.append(progression)
-
-    save_progressions(progressions, filename)
-
-    updateProgressions()
-
-def remove_progression(index, filename="progressions.json"):
-    progressions = load_progressions(filename)
-
-    if 0 <= index < len(progressions):
-        del progressions[index]
-        save_progressions(progressions, filename)
-    updateProgressions()
-
-        
-
-def updateProgressions():
-    global PROGRESSIONS
-    PROGRESSIONS = load_progressions(filename="progressions.json")
-
-PROGRESSIONS = load_progressions(filename="progressions.json") 
-
-
-
 
 class T(TipoviTokena):
     OTV, ZATV, UOTV, UZATV = '()[]'
@@ -148,16 +100,16 @@ def ac(lex):
 
 ### BKG
 # start -> '' | start naredba
-# naredba -> pridruživanje | transponiraj | analiziraj | validacija | generate_pop | ispis
+# naredba -> pridruživanje | transponiraj | analiziraj | validacija | generate_pop | ispis | izraz
 # pridruživanje -> IME JEDNAKO izraz
 # analiziraj -> ANALYSE OTV lista_akorda ZATV
 # transponiraj -> TRANSPOSE OTV izraz ZAREZ pomak ZATV
 # validacija -> VALIDATE OTV izraz ZATV
 # generate_pop -> GENERATE_POP OTV BROJ ZATV
-# izraz -> lista_akorda | generate_pop | transpose | akord
+# izraz -> lista_akorda | IME | generate_pop | transponiraj | akord
 # ispis -> ISPIS OTV pjesma ZATV
 # lista_akorda -> UOTV elementi ZATV
-# elementi ->AKORD ZAREZ elementi| AKORD
+# elementi ->AKORD (ZAREZ AKORD)*
 # pomak -> BROJ | PLUS BROJ| MINUS BROJ
 # pjesma -> TEKST
 
@@ -192,7 +144,7 @@ class P(Parser):
         else:
             raise p.greška()
 
-    def pridruzivanje(p):
+    def pridruživanje(p):
         ime = p >> T.IME
 
         p >> T.JEDNAKO
@@ -346,14 +298,20 @@ def harmonija(nota):
 
 
 def izvuci_akorde(tekst):
-    pattern = r'\[([A-H](?:#|b)?m?)\]' 
-    return re.findall(pattern, tekst)
+    lines = tekst.split("\n")
+    result = []
+    for line in lines:
+        chords = re.findall(r'\[([A-H](?:#|b)?m?)\]' , line)
+        if chords:
+            result.append(chords)
+    
+    return result
 
 
 
 
 #AST TIME! 
-
+rt.memorija = Memorija() 
 class Dohvati(AST):
     ime: ...
 
@@ -365,7 +323,7 @@ class Dohvati(AST):
 class Program(AST):
     naredbe: 'naredba*'
     def izvrši(program):
-        rt.memorija = Memorija()
+        #rt.memorija = Memorija()
 
         rezultat = None
         for naredba in program.naredbe: 
@@ -374,8 +332,8 @@ class Program(AST):
         return rezultat
 
 class Transpose(AST):
-    izraz: 'AST'
-    pomak: 'int'
+    izraz: ...
+    pomak: ...
 
     def izvrši(self):
         lista = self.izraz.izvrši()
@@ -405,7 +363,7 @@ class Transpose(AST):
         print("rezultat Transposea: ", rezultat)
         return [Token(T.AKORD,x) for x in rezultat]   
                 
-class Pridruzivanje(AST):
+class Pridruživanje(AST):
     ime: ...
     izraz: ...
 
@@ -513,7 +471,6 @@ class ListaAkorda(AST):
     def izvrši(self):
         return self.akordi
 
-
 class Pomak(AST):
     predznak: ...
     broj: ...
@@ -523,6 +480,119 @@ class Pomak(AST):
 
 
     ## DEBUG TIME:
+
+
+#Funkcije za JSON-e i to
+
+PROGRESSIONS = [[]] 
+
+LOADED_SONG = [[]]
+def load_progressions(filename="progressions.json"):
+    with open(filename, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    return data["progressions"]
+
+    
+
+def save_progressions(progressions, filename="progressions.json"):
+    data = {
+        "progressions": progressions
+    }
+
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+    
+    updateProgressions()
+
+def add_progression(progression, filename="progressions.json"):
+    progressions = load_progressions()
+
+    progressions.append(progression)
+
+    save_progressions(progressions)
+
+    updateProgressions()
+
+def remove_progression(index, filename="progressions.json"):
+    progressions = load_progressions(filename)
+
+    if 0 <= index < len(progressions):
+        del progressions[index]
+        save_progressions(progressions, filename)
+    updateProgressions()
+
+        
+
+def updateProgressions():
+    global PROGRESSIONS
+    PROGRESSIONS = load_progressions(filename="progressions.json")
+
+
+PROGRESSIONS = load_progressions(filename="progressions.json") 
+
+def load_songs(filename = "songs.json"):
+    if not os.path.exists(filename):
+        return []
+    with open(filename, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data["songs"]
+
+def save_songs(songs, filename = "songs.json"):
+    data = {
+        "songs" : songs
+    }
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f,indent=4)
+
+def add_song(text, title= "Unknown", artist="Unknown", filename="songs.json"):
+    songs = load_songs(filename)
+
+    song = {
+        "artist": artist,
+        "title": title,
+        "text": text
+    }
+
+    songs.append(song)
+
+    save_songs(songs, filename)
+
+def remove_song(title, artist, filename="songs.json"):
+    songs = load_songs(filename)
+
+    novi_popis = []
+
+    obrisana = False
+
+    for song in songs:
+        if (song["title"].lower() == title.lower()
+            and song["artist"].lower() == artist.lower()
+        ):
+            obrisana = True
+            continue
+
+        novi_popis.append(song)
+
+    save_songs(novi_popis, filename)
+
+    if obrisana:
+        print(f"Obrisana pjesma: {artist} - {title}")
+    else:
+        print("Pjesma nije pronađena.")
+
+def find_song(title, filename="songs.json"):
+    songs = load_songs(filename)
+    global LOADED_SONG
+    for song in songs:
+        if song["title"].lower() == title.lower():
+            LOADED_SONG = song
+            print("Song is loaded into variable LOADED_SONG")
+            return True
+    
+
+    return False 
+
 
 def iz(tekst):
     P(tekst).izvrši()
@@ -539,9 +609,17 @@ if __name__ == "__main__":
         "generate_pop(8)",
         "ispis(!C Am F G!)",
         "verse = [C,G,Am,F]",
-        "chorus = transpose(verse, 2)"
+        "chorus = transpose(verse, 2)",
         "analyse(chorus)"
+        "verse = [C,G,Am,F]",
+        "analyse(verse)",
+        "validate(verse)",
+        "chorus = transpose(verse, 2)",
+        "analyse(chorus)",
+        "pop = generate_pop(1)",
+        "validate(pop)"
     ]
+
 
     for i, ulaz in enumerate(testovi):
         print("\n" + "=" * 50)
@@ -557,3 +635,18 @@ if __name__ == "__main__":
             
 
 
+bajaga = """[Am]Mrak se skupio u kap, [C]rano jutro kao [G]slap ulazi u sobu
+[Am]Da l' si ikada pitala [C]tamne senke zidova [G]ujutro gde odu
+[Am]Oči su ti sklopljene,[C] usne su ti umorne [G]Ne ljubi me njima
+[Am]Nisu čvorci pevali [C]dok je iznad krovova [G]svirala tišina
+
+
+[Am]Hajde, Bože, budi drug[C] pa okreni jedan krug[G] unazad planetu
+[Am]Noć je kratko trajala[C] a nama je trebala,[G] ovolika najduža na svetu
+[Am]U mom oku samo hlad, [C]u mom srcu samo stud, [G]inje i prašina
+[Am]Nisu čvorci pevali[C] dok je iznad krovova [G]svirala tišina
+
+[Am]U cik zore zviždi voz, [C]njime odlazim u OZ [G]Neću da se vratim
+[Am]Što god tebi napišem [C]pocepam i obrišem [G]Al' ti moraš znati
+[Am]Nisi se probudila,[C] zato nisi videla, [G]igrale su sene
+[Am]Nek' te dobri duhovi[C] i kraljevski orlovi [G]čuvaju od mene"""
