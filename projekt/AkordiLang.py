@@ -48,6 +48,7 @@ class T(TipoviTokena):
     UCITAJ_PROGRESIJU = 'ucitaj_progresiju'
 
     IZVUCI_AKORDE = 'izvuci_akorde'
+    ZAMJENI_AKORDE = 'zamjeni_akorde'
 
     class BROJ(Token):
         def vrijednost(self): return int(self.sadržaj)
@@ -113,7 +114,7 @@ def ac(lex):
 # start -> '' | start naredba
 # naredba -> pridruživanje | transponiraj | analiziraj | validacija | generate_pop | ispis | izraz|
 #            dodaj_progresiju | izbrisi_progresiju| ucitaj_progresiju
-#            dodaj_pjesmu| ucitaj_pjesmu| izbrisi_pjesmu
+#            dodaj_pjesmu| ucitaj_pjesmu| izbrisi_pjesmu | zamjeni_akorde
 #            izvuci_akorde
 # pridruživanje -> IME JEDNAKO izraz
 # analiziraj -> ANALYSE OTV lista_akorda ZATV
@@ -128,11 +129,12 @@ def ac(lex):
 # dodaj_progresiju -> DODAJ_PROGRESIJU OTV izraz ZATV
 # izbrisi_progresiju -> IZBRISI_PROGRESIJU OTV BROJ ZATV
 # ucitaj_progresiju -> UCITAJ_PROGRESIJU OTV ZATV
-# izvuci_akorde -> IZVUCI_AKORDE OTV (TEKST|IME) ZATV
+# izvuci_akorde -> IZVUCI_AKORDE OTV pjesma ZATV
+# zamjeni_akorde -> ZAMJENI_AKORDE OTV pjesma ZAREZ izraz ZATV
 # lista_akorda -> UOTV elementi ZATV
 # elementi ->AKORD (ZAREZ AKORD)*
 # pomak -> BROJ | PLUS BROJ| MINUS BROJ
-# pjesma -> TEKST
+# pjesma -> TEKST | IME 
 
 
 class P(Parser):
@@ -183,6 +185,8 @@ class P(Parser):
             return p.izvuci_akorde()
         elif p > T.IZBRISI_PJESMU:
             return p.izbrisi_pjesmu()
+        elif p > T.ZAMJENI_AKORDE:
+            return p.zamjeni_akorde()
 
         else:
             raise p.greška()
@@ -236,6 +240,9 @@ class P(Parser):
         
         elif p > T.UCITAJ_PJESMU:
             return p.ucitaj_pjesmu()
+
+        elif p > T.ZAMJENI_AKORDE:
+            return p.zamijeni_akorde()
 
         elif p > T.AKORD:
             return ListaAkorda([p >> T.AKORD])
@@ -328,11 +335,11 @@ class P(Parser):
         title = p >> T.IME
         p >> T.ZAREZ
 
-        text = p >> T.TEKST
+        text = p.izraz()
 
         p >> T.ZATV
 
-        return AddSong(text, title, artist)
+        return DodajPjesmu(text, title, artist)
     
     def izbrisi_pjesmu(p):
         p >> T.IZBRISI_PJESMU
@@ -344,7 +351,19 @@ class P(Parser):
 
         p >> T.ZATV
 
-        return RemoveSong(title, artist)
+        return IzbrisiPjesmu(title, artist)
+    
+    def zamijeni_akorde(p):
+        p >> T.ZAMJENI_AKORDE
+        p >> T.OTV
+
+        tekst = p.izraz()
+        p >> T.ZAREZ
+        akordi = p.izraz()
+
+        p >> T.ZATV
+
+        return ZamijeniAkorde(tekst, akordi)
     
     def ucitaj_pjesmu(p):
         p >> T.UCITAJ_PJESMU
@@ -356,7 +375,7 @@ class P(Parser):
 
         p >> T.ZATV
 
-        return LoadSong(artist, title)
+        return UcitajPjesmu(artist, title)
     
     def dodaj_progresiju(p):
         p >> T.DODAJ_PROGRESIJU
@@ -496,7 +515,7 @@ class Transpose(AST):
 
             rezultat.append(novi_akord)
         print("rezultat Transposea: ", rezultat)
-        return [Token(T.AKORD,x) for x in rezultat]   
+        return [Token(T.AKORD,x) for x in rezultat]
                 
 class Pridruživanje(AST):
     ime: ...
@@ -613,15 +632,16 @@ class Pomak(AST):
     def izvrši(self):
         return self.predznak * self.broj.vrijednost()
 
-class AddSong(AST):
-    tekst: ...
+class DodajPjesmu(AST):
+    text: ...
     title: ...
     artist: ...
     def izvrši(self):
-        add_song(self.tekst.sadržaj, self.title.sadržaj, self.artist.sadržaj)
+        tekst = self.text.izvrši()
+        add_song(tekst, self.title.sadržaj, self.artist.sadržaj,"songs.json",True)
         return None
 
-class LoadSong(AST):
+class UcitajPjesmu(AST):
     artist: ...
     title: ...
 
@@ -633,7 +653,7 @@ class LoadSong(AST):
 
         return song
 
-class RemoveSong(AST):
+class IzbrisiPjesmu(AST):
     title: ...
     artist: ...
 
@@ -696,6 +716,17 @@ class Akord(AST):
         return self.token.sadržaj
     
 
+class ZamijeniAkorde(AST):
+    tekst: ...
+    akordi: ...
+
+    def izvrši(self):
+        tekst = self.tekst.izvrši()
+        akordi = self.akordi.izvrši()
+
+        akordi = [akord.sadržaj for akord in akordi]
+
+        return ubaci_akorde_u_pjesmu(tekst, akordi)
 
     ## DEBUG TIME:
 
@@ -704,14 +735,24 @@ class Akord(AST):
 
 PROGRESSIONS = [[]] 
 
-LOADED_SONG = [[]]
 def load_progressions(filename="progressions.json"):
     with open(filename, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     return data["progressions"]
 
-    
+def ubaci_akorde_u_pjesmu(tekst, novi_akordi):
+    pattern = r'\[([A-H](?:#|b)?m?)\]'
+
+    it = iter(novi_akordi)
+
+    def replacer(match):
+        try:
+            return f"[{next(it)}]"
+        except StopIteration:
+            return match.group(0)
+
+    return re.sub(pattern, replacer, tekst)    
 
 def save_progressions(progressions, filename="progressions.json"):
     data = {
@@ -784,11 +825,11 @@ def add_song(text, title= "Unknown", artist="Unknown", filename="songs.json", Re
                 s["text"] = text
                 save_songs(songs,filename)
                 print("Pjesma je zamjenjena")
-            else:
-                return
+            
+            return
 
     songs.append(song)
-
+    print("Pjesma je dodana")
     save_songs(songs, filename)
 
 def remove_song(title, artist, filename="songs.json"):
@@ -835,33 +876,29 @@ def testiraj(tekst):
 if __name__ == "__main__":
 
     testovi = [
-        "analyse ([C, G, Am, F])",
+        "analyse (transpose([C, G, Am, F]))",
         "transpose ([C, G, Am, F], +2)",
         "transpose ([C, G, Am, F], 2)",
         "generate_pop(8)",
         "ispis(!C Am F G!)",
         "verse = [C,G,Am,F]",
         "chorus = transpose(verse, 2)",
-        "analyse(chorus)"
-        "verse = [C,G,Am,F]",
+        "analyse(transpose(chorus,2))",
+        "analyse(transpose(generate_pop(3),2))",
         "analyse(verse)",
         "validate(verse)",
         "chorus = transpose(verse, 2)",
         "analyse(chorus)",
         "pop = generate_pop(1)",
-        "validate(pop)"
-    ]
-    testovi2 = [
-
-    # ---- PJESME ----
-
+        "validate(pop)",
         "song = ucitaj_pjesmu(Bajaga, Tisina)",
         "verse = izvuci_akorde(song)",
-        "trans = transpose(verse, 2)",
-        "analyse(trans)"
-
+        "trans = transpose(verse, -2)",
+        "analyse(trans)",
+        "nova_pjesma = zamjeni_akorde(song, trans)",
+        "dodaj_pjesmu(Bajaga, Tisina, nova_pjesma)"
     ]
-
+    
 
     for i, ulaz in enumerate(testovi):
         print("\n" + "=" * 50)
@@ -874,21 +911,11 @@ if __name__ == "__main__":
         except Exception as e:
             print("GREŠKA:", e)
     
-    for i, ulaz in enumerate(testovi2):
-        print("\n" + "=" * 50)
-        print(f"TEST {i}: {ulaz}")
-        print("-" * 50)
-
-        try:
-            testiraj(ulaz)
-            iz(ulaz)
-        except Exception as e:
-            print("GREŠKA:", e)
 
             
 
-
-bajaga = """[Am]Mrak se skupio u kap, [C]rano jutro kao [G]slap ulazi u sobu
+#OFC najpopularnija pjesma za poćet učiti gitaru
+bajaga_tisina = """[Am]Mrak se skupio u kap, [C]rano jutro kao [G]slap ulazi u sobu
 [Am]Da l' si ikada pitala [C]tamne senke zidova [G]ujutro gde odu
 [Am]Oči su ti sklopljene,[C] usne su ti umorne [G]Ne ljubi me njima
 [Am]Nisu čvorci pevali [C]dok je iznad krovova [G]svirala tišina
