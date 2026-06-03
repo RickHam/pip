@@ -1,19 +1,9 @@
 {
     "songs": [
         {
-            "artist": "ParniValjak",
-            "title": "Jesen",
-            "text": "![C]Jesen [G]u meni!"
-        },
-        {
-            "artist": "Bajaga",
-            "title": "Ti\u0161ina",
-            "text": "!tekst!"
-        },
-        {
             "artist": "Bajaga",
             "title": "Tisina",
-            "text": "[Fm]Mrak se skupio u kap, [G#]rano jutro kao [D#]slap ulazi u sobu\n[Fm]Da l' si ikada pitala [G#]tamne senke zidova [D#]ujutro gde odu\n[Fm]O\u010di su ti sklopljene,[G#] usne su ti umorne [D#]Ne ljubi me njima\n[Fm]Nisu \u010dvorci pevali [G#]dok je iznad krovova [D#]svirala ti\u0161ina\n\n\n[Fm]Hajde, Bo\u017ee, budi drug[G#] pa okreni jedan krug[D#] unazad planetu\n[Fm]No\u0107 je kratko trajala[G#] a nama je trebala,[D#] ovolika najdu\u017ea na svetu\n[Fm]U mom oku samo hlad, [G#]u mom srcu samo stud, [D#]inje i pra\u0161ina\n[Fm]Nisu \u010dvorci pevali[G#] dok je iznad krovova [D#]svirala ti\u0161ina\n\n[Fm]U cik zore zvi\u017edi voz, [G#]njime odlazim u OZ [D#]Ne\u0107u da se vratim\n[Fm]\u0160to god tebi napi\u0161em [G#]pocepam i obri\u0161em [D#]Al' ti mora\u0161 znati\n[Fm]Nisi se probudila,[G#] zato nisi videla, [D#]igrale su sene\n[Fm]Nek' te dobri duhovi[G#] i kraljevski orlovi [D#]\u010duvaju od mene"
+            "text": "[Am]Mrak se skupio u kap, [C]rano jutro kao [G]slap ulazi u sobu\n[Am]Da l' si ikada pitala [C]tamne senke zidova [G]ujutro gde odu\n[Am]O\u010di su ti sklopljene,[C] usne su ti umorne [G]Ne ljubi me njima\n[Am]Nisu \u010dvorci pevali [C]dok je iznad krovova [G]svirala ti\u0161ina\n\n\n[Am]Hajde, Bo\u017ee, budi drug[C] pa okreni jedan krug[G] unazad planetu\n[Am]No\u0107 je kratko trajala[C] a nama je trebala,[G] ovolika najdu\u017ea na svetu\n[Am]U mom oku samo hlad, [C]u mom srcu samo stud, [G]inje i pra\u0161ina\n[Am]Nisu \u010dvorci pevali[C] dok je iznad krovova [G]svirala ti\u0161ina\n\n[Am]U cik zore zvi\u017edi voz, [C]njime odlazim u OZ [G]Ne\u0107u da se vratim\n[Am]\u0160to god tebi napi\u0161em [C]pocepam i obri\u0161em [G]Al' ti mora\u0161 znati\n[Am]Nisi se probudila,[C] zato nisi videla, [G]igrale su sene\n[Am]Nek' te dobri duhovi[C] i kraljevski orlovi [G]\u010duvaju od mene"
         }
     ]
 }
