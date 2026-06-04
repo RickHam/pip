@@ -24,7 +24,7 @@ import json, os
 # Podržane naredbe:
 #
 # transpose(progresija, pomak)
-#     Transponira sve akorde za zadani broj polustepena.
+#     Transponira sve akorde za zadani broj polustupnja.
 #
 # analyse(progresija)
 #     Prikazuje progresiju u obliku rimskih brojeva.
@@ -36,7 +36,7 @@ import json, os
 #     Generira unaprijed definiranu popularnu progresiju.
 #
 # dodaj_pjesmu(izvođač, naslov, tekst)
-#     Sprema pjesmu u JSON bazu.
+#     Sprema pjesmu u JSON bazu. Ako postoji već pjesma, mjenja nju.
 #
 # ucitaj_pjesmu(izvođač, naslov)
 #     Učitava pjesmu iz JSON baze.
@@ -58,9 +58,9 @@ import json, os
 #
 # ucitaj_progresiju()
 #     Učitava sve progresije iz baze u memoriju programa.
-#
-# generate_pop(n)
-#     Generira pop progresiju na temelju unaprijed definiranih uzoraka.
+
+
+
 
 # Klasična definica ljestvica nota i progresija. 
 # Problematični su E->F, i B->C jer ne postoje E#, B# 
@@ -153,9 +153,9 @@ def ac(lex):
 
 ### BKG
 # start -> '' | start naredba
-# naredba -> pridruživanje | transponiraj | analiziraj | validacija | generate_pop | ispis | izraz|
-#            dodaj_progresiju | izbrisi_progresiju| ucitaj_progresiju
-#            dodaj_pjesmu| ucitaj_pjesmu| izbrisi_pjesmu | zamjeni_akorde
+# naredba -> pridruživanje | transponiraj | analiziraj | validacija | generate_pop | ispis | 
+#            dodaj_progresiju | izbrisi_progresiju| ucitaj_progresiju|
+#            dodaj_pjesmu| ucitaj_pjesmu| izbrisi_pjesmu | zamjeni_akorde|
 #            izvuci_akorde
 # pridruživanje -> IME JEDNAKO izraz
 # analiziraj -> ANALYSE OTV lista_akorda ZATV
@@ -769,7 +769,7 @@ class DodajProgresiju(AST):
     def izvrši(self):
         prog = [akord.sadržaj for akord in self.progresija.izvrši()]
         add_progression(prog)
-        print("Dodana progresija")
+        
 
 class IzbrisiProgresiju(AST):
     index: 'BROJ'
@@ -855,7 +855,7 @@ def add_progression(progression, filename="progressions.json"):
     progressions.append(progression)
 
     save_progressions(progressions)
-
+    print("Dodana progresija")
     updateProgressions()
 
 def remove_progression(index, filename="progressions.json"):
@@ -987,7 +987,8 @@ if __name__ == "__main__":
         "trans = transpose(verse, +2)",
         "analyse(trans)",
         "nova_pjesma = zamjeni_akorde(song, trans)",
-        "dodaj_pjesmu(Bajaga, Tisina, nova_pjesma)"
+        "dodaj_pjesmu(Bajaga, Tisina, nova_pjesma)",
+        "dodaj_progresiju([C,D,Am])"
     ]
     
 
@@ -1021,3 +1022,27 @@ bajaga_tisina = """[Am]Mrak se skupio u kap, [C]rano jutro kao [G]slap ulazi u s
 [Am]Što god tebi napišem [C]pocepam i obrišem [G]Al' ti moraš znati
 [Am]Nisi se probudila,[C] zato nisi videla, [G]igrale su sene
 [Am]Nek' te dobri duhovi[C] i kraljevski orlovi [G]čuvaju od mene"""
+
+azra_balkan = """[G]Jednog dana [Am]nema me [C]da nikada [Em]ne dođem
+[G]Prijatelje [Am]koje znam [C]ne poznajem [Em]kad prođem
+
+[G]Kao da me [Am]nikada na [C]svijetu nije [Em]bilo
+[G]Kao da me [Am]njezino [C]tijelo nije [Em]htilo
+
+[G]Moja kita [Am]miruje [C]a furala bi [Em]furke
+[G]Lepe dekle [Am]moderne [C]ne padaju na [Em]žurke
+
+[G]Brijem bradu, [Am]brkove [C]da ličim na [Em]Pankrte
+[G]Još da imam [Am]Fendera — [C]vidio bi [Em]svirke
+
+[G]Balkane, [Am]Balkane, [C]Balkane [Em]moj
+[G]Budi mi [Am]silan i [C]dobro mi [Em]stoj
+
+[G]Mi smo ljudi [Am]cigani [C]sudbinom [Em]prokleti
+[G]Uvijek netko [Am]oko nas [C]dođe pa nam [Em]prijeti
+
+[G]Ni bendovi [Am]nisu više [C]kao što su [Em]bili
+[G]Moj se [Am]amaterski [C]priprema da [Em]sviri
+
+[G]Balkane, [Am]Balkane, [C]Balkane [Em]moj
+[G]Budi mi [Am]silan i [C]dobro mi [Em]stoj"""
